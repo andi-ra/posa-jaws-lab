@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+. /etc/profile
+
+cd "{{ jaws_server_dir }}"
+
+BIN="./HTTP_Server"
+if [ ! -x "$BIN" ]; then
+  echo "Expected $BIN not found/executable. Adjust BIN in this script."
+  exit 2
+fi
+
+echo "[lldb-server] Listening on *:{{ lldbserver_port }} (gdb-remote), launching $BIN"
+exec lldb-server gdbserver "*:{{ lldbserver_port }}" -- "$BIN" -p "{{ jaws_port }}"
+

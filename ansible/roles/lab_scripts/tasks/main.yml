@@ -1,0 +1,33 @@
+---
+- name: Create lab bin directory
+  file:
+    path: "{{ posa_workspace }}/bin"
+    state: directory
+    owner: "{{ posa_user }}"
+    group: "{{ posa_group }}"
+    mode: "0755"
+
+- name: Install run_jaws.sh
+  template:
+    src: run_jaws.sh.j2
+    dest: "{{ posa_workspace }}/bin/run_jaws.sh"
+    owner: "{{ posa_user }}"
+    group: "{{ posa_group }}"
+    mode: "0755"
+
+- name: Install run_gdbserver.sh
+  template:
+    src: run_gdbserver.sh.j2
+    dest: "{{ posa_workspace }}/bin/run_gdbserver.sh"
+    owner: "{{ posa_user }}"
+    group: "{{ posa_group }}"
+    mode: "0755"
+
+- name: Install run_lldbserver.sh
+  template:
+    src: run_lldbserver.sh.j2
+    dest: "{{ posa_workspace }}/bin/run_lldbserver.sh"
+    owner: "{{ posa_user }}"
+    group: "{{ posa_group }}"
+    mode: "0755"
+

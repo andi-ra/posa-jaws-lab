@@ -1,0 +1,21 @@
+---
+- name: Install build toolchain + debuggers
+  apk:
+    name:
+      - build-base
+      - linux-headers
+      - cmake
+      - ninja
+      - perl
+      - python3
+      - gdb
+      - lldb
+      - llvm
+      - clang
+      - strace
+      - tcpdump
+      - iproute2
+      - util-linux
+    state: present
+    update_cache: true
+

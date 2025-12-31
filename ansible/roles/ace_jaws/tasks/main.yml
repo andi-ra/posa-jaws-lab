@@ -1,0 +1,81 @@
+---
+- name: Create ACE install root
+  file:
+    path: "{{ ace_install_root }}"
+    state: directory
+    mode: "0755"
+
+- name: Download ACE+TAO release bundle
+  get_url:
+    url: "{{ ace_tao_url }}"
+    dest: "/tmp/ACE+TAO-{{ ace_tao_version }}.tar.gz"
+    mode: "0644"
+
+- name: Extract ACE+TAO
+  unarchive:
+    src: "/tmp/ACE+TAO-{{ ace_tao_version }}.tar.gz"
+    dest: "{{ ace_install_root }}"
+    remote_src: true
+    creates: "{{ ace_src_dir }}"
+
+# The bundle commonly extracts into a directory named ACE+TAO (or ACE+TAO-<ver>).
+# We normalize by moving it to ace_src_dir and symlinking ace_link_dir.
+- name: Normalize extracted directory name
+  shell: |
+    set -e
+    cd "{{ ace_install_root }}"
+    # Find the top extracted directory (best-effort)
+    d="$(tar -tzf /tmp/ACE+TAO-{{ ace_tao_version }}.tar.gz | head -1 | cut -d/ -f1)"
+    if [ -n "$d" ] && [ "$d" != "$(basename {{ ace_src_dir }})" ] && [ -d "$d" ] && [ ! -d "{{ ace_src_dir }}" ]; then
+      mv "$d" "{{ ace_src_dir }}"
+    fi
+  args:
+    executable: /bin/sh
+
+- name: Symlink ACE_TAO -> versioned directory
+  file:
+    src: "{{ ace_src_dir }}"
+    dest: "{{ ace_link_dir }}"
+    state: link
+    force: true
+
+# Minimal GNUmakefile configuration used widely in ACE builds (config.h + platform_macros).
+- name: Ensure ace/config.h points to Linux config
+  file:
+    src: "config-linux.h"
+    dest: "{{ ace_root }}/ace/config.h"
+    state: link
+    force: true
+
+- name: Write platform_macros.GNU
+  template:
+    src: platform_macros.GNU.j2
+    dest: "{{ ace_root }}/include/makeinclude/platform_macros.GNU"
+    mode: "0644"
+
+# Optional build (tagged so you can skip if you want interactive first-time builds).
+- name: Build ACE (debug if enabled)
+  shell: |
+    set -e
+    . /etc/profile
+    cd "{{ ace_root }}"
+    make -j{{ ace_make_jobs }} {{ 'debug=1 optimize=0' if ace_debug_build else '' }}
+  args:
+    executable: /bin/sh
+  tags: [build]
+
+- name: Build JAWS server (best effort)
+  shell: |
+    set -e
+    . /etc/profile
+    if [ -d "{{ jaws_server_dir }}" ]; then
+      cd "{{ jaws_server_dir }}"
+      make -j{{ ace_make_jobs }} {{ 'debug=1 optimize=0' if ace_debug_build else '' }}
+    else
+      echo "JAWS server dir not found at {{ jaws_server_dir }}. Adjust jaws_server_dir."
+      exit 2
+    fi
+  args:
+    executable: /bin/sh
+  tags: [build]
+

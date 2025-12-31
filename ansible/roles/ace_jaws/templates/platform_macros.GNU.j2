@@ -1,0 +1,8 @@
+include $(ACE_ROOT)/include/makeinclude/platform_linux.GNU
+
+# Lab-friendly defaults (you can override on the make command line)
+{% if ace_debug_build %}
+debug=1
+optimize=0
+{% endif %}
+

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+. /etc/profile
+
+cd "{{ jaws_server_dir }}"
+
+BIN="./HTTP_Server"
+if [ ! -x "$BIN" ]; then
+  echo "Expected $BIN not found/executable. Adjust BIN in this script."
+  exit 2
+fi
+
+echo "[gdbserver] Listening on :{{ gdbserver_port }}, launching $BIN"
+exec gdbserver :{{ gdbserver_port }} "$BIN" -p "{{ jaws_port }}"
+

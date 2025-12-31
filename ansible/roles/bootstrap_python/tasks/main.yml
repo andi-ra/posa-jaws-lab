@@ -1,0 +1,12 @@
+---
+- name: Ensure python3 is installed (Alpine bootstrap)
+  raw: apk add --no-cache python3
+  changed_when: false
+
+- name: Ensure sudo and openssh are present (bootstrap)
+  raw: apk add --no-cache sudo openssh
+  changed_when: false
+
+- name: Gather facts after python bootstrap
+  setup:
+
