@@ -46,7 +46,7 @@
     mode: "0440"
 
 - name: Install SSH authorized key for {{ posa_user }}
-  authorized_key:
+  ansible.posix.authorized_key:
     user: "{{ posa_user }}"
     key: "{{ posa_authorized_key }}"
     state: present

@@ -1,20 +1,23 @@
 ---
-- name: Provision POSA/JAWS VM (Alpine) for Reactor lab + remote debugging
+- name: jaws01 bootstrap + provision
   hosts: jaws
   become: true
   gather_facts: false
-
+  collections:
+    - community.general
+    - ansible.posix
   roles:
     - bootstrap_python
 
-- name: Configure system, toolchain, ACE/JAWS sources, and lab scripts
+- name: jaws01 build + scripts
   hosts: jaws
   become: true
   gather_facts: true
-
+  collections:
+    - community.general
+    - ansible.posix
   roles:
     - common
     - devtools
     - ace_jaws
     - lab_scripts
-

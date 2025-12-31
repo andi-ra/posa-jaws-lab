@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -euo pipefail
+. /etc/profile
+
+cd "{{ jaws_server_dir }}"
+
+PORT="{{ jaws_port | default(8080) }}"
+echo "[run_jaws] port=$PORT dir=$(pwd)"
+
+for bin in HTTP_Server JAWS_Server server; do
+  if [ -x "./$bin" ]; then
+    exec "./$bin" -p "$PORT"
+  fi
+done
+
+echo "No known server binary found in {{ jaws_server_dir }}"
+ls -la
+exit 2

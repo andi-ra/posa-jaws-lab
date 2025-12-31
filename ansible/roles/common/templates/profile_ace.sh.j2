@@ -1,0 +1,6 @@
+export ACE_TAO_ROOT="{{ ace_link_dir }}"
+export ACE_ROOT="{{ ace_root }}"
+export TAO_ROOT="{{ ace_link_dir }}/TAO"
+export PATH="$ACE_ROOT/bin:$PATH"
+export LD_LIBRARY_PATH="$ACE_ROOT/lib:$TAO_ROOT/lib:${LD_LIBRARY_PATH:-}"
+export POSA_WORKSPACE="{{ posa_workspace | default(workspace | default('/root/workspace')) }}"

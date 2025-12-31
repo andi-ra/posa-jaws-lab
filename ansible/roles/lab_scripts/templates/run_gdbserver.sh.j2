@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+. /etc/profile
+
+cd "{{ jaws_server_dir }}"
+PORT="{{ jaws_port | default(8080) }}"
+DBGPORT="{{ gdbserver_port | default(2345) }}"
+
+BIN="./HTTP_Server"
+if [ ! -x "$BIN" ]; then
+  echo "Expected $BIN not found. Adjust BIN."
+  ls -la
+  exit 2
+fi
+
+exec gdbserver :"$DBGPORT" "$BIN" -p "$PORT"

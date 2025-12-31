@@ -1,35 +1,22 @@
-# Identity
 posa_user: root
 posa_group: root
 posa_shell: /bin/bash
 
-# Where the lab lives on the VM
-posa_workspace: "/home/{{ posa_user }}/workspace"
-
-# SSH key to install on the VM user (reads from the WSL controller)
+posa_workspace: "/root/workspace"
 posa_authorized_key: "{{ lookup('file', lookup('env','HOME') + '/.ssh/id_ed25519.pub') }}"
 
-# ACE/JAWS source bundle
-# Vanderbilt lists latest micro release and points to release assets. :contentReference[oaicite:5]{index=5}
 ace_tao_version: "8.0.5"
-ace_tao_url: "https://github.com/DOCGroup/ACE_TAO/releases/download/ACE%2BTAO-8_0_5/ACE%2BTAO-8.0.5.tar.gz"
+ace_tao_url: "https://download.dre.vanderbilt.edu/ACE%2BTAO-distribution/ACE%2BTAO.tar.gz"
 
 ace_install_root: /opt/ace
-ace_src_dir: "{{ ace_install_root }}/ACE_TAO-{{ ace_tao_version }}"
 ace_link_dir: "{{ ace_install_root }}/ACE_TAO"
-ace_root: "{{ ace_link_dir }}/ACE"
-
-# JAWS server path in the bundle (this is the conventional location)
+ace_wrappers: "{{ ace_link_dir }}"
+ace_root: "{{ ace_link_dir }}"
 jaws_server_dir: "{{ ace_link_dir }}/apps/JAWS/server"
 
-# Build style
-ace_make_jobs: "2"          # set to "{{ ansible_processor_vcpus | default(2) }}" if you want auto
-ace_debug_build: true       # tries to build with debug flags
+ace_make_jobs: "2"
+ace_debug_build: true
 
-# Runtime
 jaws_port: 8080
-
-# Remote debug ports (from WSL -> VM)
 gdbserver_port: 2345
 lldbserver_port: 2346
-
