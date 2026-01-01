@@ -1,11 +1,10 @@
 ---
-- name: Install build toolchain + debuggers
-  apk:
+- name: Install build toolchain + debuggers (Ubuntu/Debian)
+  ansible.builtin.apt:
     name:
-      - build-base
-      - linux-headers
+      - build-essential
       - cmake
-      - ninja
+      - ninja-build
       - perl
       - python3
       - gdb
@@ -16,6 +15,25 @@
       - tcpdump
       - iproute2
       - util-linux
+      - ca-certificates
+      - pkg-config
     state: present
     update_cache: true
 
+# Opzione A: headers "generic" (semplice)
+- name: Install generic Linux headers (Ubuntu)
+  ansible.builtin.apt:
+    name:
+      - linux-headers-generic
+    state: present
+    update_cache: false
+
+# Opzione B: headers esatti del kernel (più preciso)
+# Usa questa al posto di "linux-headers-generic" se preferisci.
+# Richiede gather_facts: true nella play.
+# - name: Install Linux headers for running kernel (Ubuntu)
+#   ansible.builtin.apt:
+#     name:
+#       - "linux-headers-{{ ansible_kernel }}"
+#     state: present
+#     update_cache: false

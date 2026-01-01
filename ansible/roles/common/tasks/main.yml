@@ -1,6 +1,6 @@
 ---
 - name: Install baseline utilities
-  apk:
+  apt:
     name:
       - bash
       - git
@@ -10,46 +10,6 @@
       - sudo
     state: present
     update_cache: true
-
-- name: Ensure sshd host keys exist
-  command: ssh-keygen -A
-  args:
-    creates: /etc/ssh/ssh_host_rsa_key
-
-- name: Enable and start sshd (OpenRC)
-  command: rc-update add sshd default
-  register: rcadd
-  changed_when: "'added' in rcadd.stdout or rcadd.rc == 0"
-  failed_when: false
-
-- name: Start sshd
-  command: rc-service sshd restart
-  changed_when: false
-
-- name: Create {{ posa_user }} group
-  group:
-    name: "{{ posa_group }}"
-    state: present
-
-- name: Create {{ posa_user }} user
-  user:
-    name: "{{ posa_user }}"
-    group: "{{ posa_group }}"
-    shell: "{{ posa_shell }}"
-    create_home: true
-    state: present
-
-- name: Allow {{ posa_user }} passwordless sudo (lab convenience)
-  copy:
-    dest: "/etc/sudoers.d/{{ posa_user }}"
-    content: "{{ posa_user }} ALL=(ALL) NOPASSWD:ALL\n"
-    mode: "0440"
-
-- name: Install SSH authorized key for {{ posa_user }}
-  ansible.posix.authorized_key:
-    user: "{{ posa_user }}"
-    key: "{{ posa_authorized_key }}"
-    state: present
 
 - name: Create workspace directory
   file:

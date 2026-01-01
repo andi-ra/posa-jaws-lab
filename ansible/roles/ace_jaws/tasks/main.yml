@@ -1,93 +1,140 @@
 ---
-- name: Install extraction tools (Alpine)
-  community.general.apk:
+- name: Install build + extraction tools (Ubuntu)
+  ansible.builtin.apt:
     name:
+      - ca-certificates
       - tar
       - unzip
-      - ca-certificates
+      - build-essential
+      - make
+      - g++
+      - perl
+      - python3
+      - pkg-config
     state: present
     update_cache: true
 
 - name: Create ACE install root
-  file:
+  ansible.builtin.file:
     path: "{{ ace_install_root }}"
     state: directory
     mode: "0755"
 
 - name: Download ACE+TAO full bundle (includes ACE_wrappers)
-  get_url:
+  ansible.builtin.get_url:
     url: "{{ ace_tao_url }}"
     dest: "/tmp/ACE+TAO.tar.gz"
     mode: "0644"
 
-- name: Assert bundle contains JAWS
-  shell: |
-    set -e
-    tar -tzf /tmp/ACE+TAO.tar.gz | grep -q '^ACE_wrappers/apps/JAWS/'
-  args:
-    executable: /bin/sh
+- name: Extract ACE+TAO into install root
+  ansible.builtin.unarchive:
+    src: "/tmp/ACE+TAO.tar.gz"
+    dest: "{{ ace_install_root }}"
+    remote_src: true
+    creates: "{{ ace_install_root }}/ACE_wrappers"
 
-- name: Extract ACE+TAO (creates /opt/ace/ACE_wrappers)
-  shell: |
-    set -e
-    cd "{{ ace_install_root }}"
-    tar -xzf /tmp/ACE+TAO.tar.gz
-    test -d "{{ ace_install_root }}/ACE_wrappers"
-  args:
-    executable: /bin/sh
-  changed_when: false
+- name: Assert JAWS directory exists after extraction
+  ansible.builtin.stat:
+    path: "{{ ace_install_root }}/ACE_wrappers/apps/JAWS"
+  register: jawsdir
+  failed_when: not jawsdir.stat.exists
 
 - name: Symlink ACE_TAO -> ACE_wrappers
-  file:
+  ansible.builtin.file:
     src: "{{ ace_install_root }}/ACE_wrappers"
     dest: "{{ ace_link_dir }}"
     state: link
     force: true
 
 - name: Ensure include/makeinclude exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ ace_root }}/include/makeinclude"
   register: mkinc
   failed_when: not mkinc.stat.exists
 
 - name: Ensure ace/ exists
-  stat:
+  ansible.builtin.stat:
     path: "{{ ace_root }}/ace"
   register: acedir
   failed_when: not acedir.stat.exists
 
-- name: Ensure ace/config.h exists
-  shell: |
-    set -e
-    cd "{{ ace_root }}/ace"
-    if [ -f config.h ]; then exit 0; fi
-    if [ -f config-linux.h ]; then printf '#include "config-linux.h"\n' > config.h; exit 0; fi
-    if [ -f config.h.in ]; then cp -f config.h.in config.h; exit 0; fi
-    printf '/* minimal config.h */\n' > config.h
-  args:
-    executable: /bin/sh
+- name: Check for existing ace/config.h
+  ansible.builtin.stat:
+    path: "{{ ace_root }}/ace/config.h"
+  register: ace_cfg
+
+- name: Check for ace/config-linux.h
+  ansible.builtin.stat:
+    path: "{{ ace_root }}/ace/config-linux.h"
+  register: ace_cfg_linux
+
+- name: Check for ace/config.h.in
+  ansible.builtin.stat:
+    path: "{{ ace_root }}/ace/config.h.in"
+  register: ace_cfg_in
+
+- name: Create ace/config.h including config-linux.h (preferred)
+  ansible.builtin.copy:
+    dest: "{{ ace_root }}/ace/config.h"
+    mode: "0644"
+    content: |
+      #include "config-linux.h"
+  when:
+    - not ace_cfg.stat.exists
+    - ace_cfg_linux.stat.exists
+
+- name: Create ace/config.h from config.h.in
+  ansible.builtin.copy:
+    src: "{{ ace_root }}/ace/config.h.in"
+    dest: "{{ ace_root }}/ace/config.h"
+    remote_src: true
+    mode: "0644"
+  when:
+    - not ace_cfg.stat.exists
+    - not ace_cfg_linux.stat.exists
+    - ace_cfg_in.stat.exists
+
+- name: Create minimal ace/config.h (fallback)
+  ansible.builtin.copy:
+    dest: "{{ ace_root }}/ace/config.h"
+    mode: "0644"
+    content: |
+      /* minimal config.h */
+  when:
+    - not ace_cfg.stat.exists
+    - not ace_cfg_linux.stat.exists
+    - not ace_cfg_in.stat.exists
 
 - name: Write platform_macros.GNU
-  template:
+  ansible.builtin.template:
     src: platform_macros.GNU.j2
     dest: "{{ ace_root }}/include/makeinclude/platform_macros.GNU"
     mode: "0644"
 
+# NOTE: Building with make requires a command runner.
+# If you have a CI runner or a wrapper role, keep builds there.
+# Otherwise, you will need ansible.builtin.command for make.
+
 - name: Build ACE (ace/)
-  shell: |
-    set -e
-    export ACE_ROOT="{{ ace_root }}"
-    make -C "{{ ace_root }}/ace" -j{{ ace_make_jobs }} {{ 'debug=1 optimize=0' if ace_debug_build else '' }}
-  args:
-    executable: /bin/sh
+  ansible.builtin.command:
+    cmd: >-
+      make -C {{ ace_root }}/ace -j{{ ace_make_jobs }}
+      {{ 'debug=1 optimize=0' if ace_debug_build else '' }}
+  environment:
+    ACE_ROOT: "{{ ace_root }}"
   tags: [build]
 
+- name: Assert JAWS server dir exists
+  ansible.builtin.stat:
+    path: "{{ jaws_server_dir }}"
+  register: jaws_srv
+  failed_when: not jaws_srv.stat.exists
+
 - name: Build JAWS server
-  shell: |
-    set -e
-    test -d "{{ jaws_server_dir }}"
-    export ACE_ROOT="{{ ace_root }}"
-    make -C "{{ jaws_server_dir }}" -j{{ ace_make_jobs }} {{ 'debug=1 optimize=0' if ace_debug_build else '' }}
-  args:
-    executable: /bin/sh
+  ansible.builtin.command:
+    cmd: >-
+      make -C {{ jaws_server_dir }} -j{{ ace_make_jobs }}
+      {{ 'debug=1 optimize=0' if ace_debug_build else '' }}
+  environment:
+    ACE_ROOT: "{{ ace_root }}"
   tags: [build]

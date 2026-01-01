@@ -1,12 +1,26 @@
 ---
-- name: Ensure python3 is installed (Alpine bootstrap)
-  raw: apk add --no-cache python3
-  changed_when: false
+- name: Ensure python3 is installed (Ubuntu/Debian)
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-apt
+    state: present
+    update_cache: true
 
-- name: Ensure sudo and openssh are present (bootstrap)
-  raw: apk add --no-cache sudo openssh
-  changed_when: false
+- name: Ensure sudo and OpenSSH server are present
+  ansible.builtin.apt:
+    name:
+      - sudo
+      - openssh-server
+      - ca-certificates
+    state: present
+    update_cache: true
+
+- name: Ensure SSH service is enabled and started
+  ansible.builtin.service:
+    name: ssh
+    state: started
+    enabled: true
 
 - name: Gather facts after python bootstrap
-  setup:
-
+  ansible.builtin.setup:
